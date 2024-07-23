@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Boggle(1 player)</title>
+		<style>
+			.letterContainer { 
+					border: 3px solid black; 
+					height: 50px;
+					width: 50px;
+					position: relative;
+				}
+				
+				.letter {
+					margin: 0;
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					-ms-transform: translate(-50%, -50%);
+					transform: translate(-50%, -50%);
+				}
+				p {
+					font: 30px monospace;
+				}
+				tr {
+					height: 50px;
+					margin: 0;
+				}
+				td {
+					width: 50px;
+					margin: 0;
+				}
+				#board {
+					border: 1px solid black;
+				}
+		</style>
+	</head>
+	<body>
+		<table>
+			<tr>
+				<td>
+					<table id="board"></table>
+				</td>
+				<td>
+					<input id="word">
+					<p style="font-size: 20px; font-family: Times;">
+						<u>Words you have already found:</u>
+					</p>
+					<ol id="found">
+					</ol>
+					<p style="font-size: 20px; font-family: Times;" id="score">score: 0</p>
+				</td>
+				<td>
+					<p style="font-size: 20px; font-family: Times;">
+						<u>Words you could have found:</u>
+					</p>
+					<ol id="not found" style="max-height: 400px; overflow:scroll;">
+					</ol>
+				</td>
+			</tr>
+		</table>
+		<p id="timer"></p>
+		<script src="wordlist.js"></script>
+		<script>
+			let score = 0;
+			const diagonalsAllowed = true;
+			const board = document.getElementById("board");
+			const found = document.getElementById("found");
+			const foundWords = [];
+			const input = document.getElementById("word");
+			const width = 5;
+			const height = 5;
+			let boardMatrix = [];
+			const myDict = {
+				11.1607: 'E',
+				14.1736: 'M',
+				22.6702: 'A',
+				25.6736: 'H',
+				33.2545: 'R',
+				35.725: 'G',
+				43.269800000000004: 'I',
+				45.341800000000006: 'B',
+				52.505300000000005: 'O',
+				54.317400000000006: 'F',
+				61.2683: 'T',
+				63.046200000000006: 'Y',
+				69.70060000000001: 'N',
+				70.99050000000001: 'W',
+				76.72560000000001: 'S',
+				77.82720000000002: 'K',
+				83.31650000000002: 'L',
+				84.32390000000002: 'V',
+				88.86270000000002: 'C',
+				89.15290000000002: 'X',
+				92.78370000000001: 'U',
+				93.05590000000001: 'Z',
+				96.44030000000001: 'D',
+				96.63680000000001: 'J',
+				99.80390000000001: 'P',
+				100.00010000000002: 'Q'
+			};
+			function stringToNumber(string) {
+			    let hash = 0;
+			    if (string.length === 0) return hash;
+			    for (let i = 0; i < string.length; i++) {
+			        let char = string.charCodeAt(i);
+			        hash = ((hash << 5) - hash) + char;
+			        hash |= 0; // Convert to 32bit integer
+			    }
+			    return hash;
+			}
+
+			let seed = stringToNumber(prompt("What is your playing code?"));
+			function newRandom() {
+				seed += 1;
+				return Math.sin(seed**2 * 1000) / 2 + 0.5;
+			}
+			function getRandomLetter() {
+				let randomNumber = newRandom() * 100;
+				//let randomNumber = Math.random() * 100;
+				for (let i = 0; i < 26; i++) {
+					if (Object.keys(myDict)[i] > randomNumber) {
+						return myDict[Object.keys(myDict)[i]];
+					}
+				}
+			}
+			let classLetters = [];
+			class Letter {
+				constructor(char, td) {
+					this.neighbors = [];
+					this.partOfBlob = false;
+					this.char = char;
+					this.td = td;
+					classLetters.push(this);
+				}
+				clearColor() {this.td.style.backgroundColor = "white";}
+				addNeighbor(i) {this.neighbors.push(i);}
+				unblob() {this.partOfBlob = false;}
+
+				makesWord(word) {
+					if (this.partOfBlob) {
+						return false;
+					}
+					if (word[0] != this.char) {
+						this.partOfBlob = false;
+						return false;
+					}
+					if (word.length == 1) {
+						this.td.style.backgroundColor = "gray";
+						return true;
+					}
+					let newString = "";
+					for (let i = 1; i < word.length; i++) {
+						newString += word[i];
+					}
+					this.partOfBlob = true;
+					for (let i = 0; i < this.neighbors.length; i++) {
+						if (this.neighbors[i].makesWord(newString)) {
+							this.td.style.backgroundColor = "gray";
+							this.partOfBlob = false;
+							return true;
+						}
+					}
+					this.partOfBlob = false;
+					return false;
+				}
+			}
+			function setUpBoard() {
+				for (let i = 0; i < height; i++) {
+					let tr = document.createElement("tr");
+					board.appendChild(tr);
+					let newRow = [];
+					boardMatrix.push(newRow);
+					for (let j = 0; j < width; j++) {
+						let td = document.createElement("td");
+						tr.appendChild(td);
+						let container = document.createElement("div");
+						container.classList.add("letterContainer");
+						td.appendChild(container);
+						let letter = document.createElement("div");
+						letter.classList.add("letter");
+						container.appendChild(letter);
+						let p = document.createElement("p");
+						letter.appendChild(p);
+						let newRandomLetter = getRandomLetter();
+						p.innerHTML = newRandomLetter;
+						newRow.push(new Letter(newRandomLetter, td));
+					}
+				}
+				for (let i = 0; i < height; i++) {
+					for (let j = 0; j < width - 1; j++) {
+						//left & right
+						boardMatrix[i][j].addNeighbor(boardMatrix[i][j + 1]);
+						boardMatrix[i][j + 1].addNeighbor(boardMatrix[i][j]);
+					}
+				}
+				for (let i = 0; i < height - 1; i++) {
+					for (let j = 0; j < width; j++) {
+						//up & down
+						boardMatrix[i][j].addNeighbor(boardMatrix[i + 1][j]);
+						boardMatrix[i + 1][j].addNeighbor(boardMatrix[i][j]);
+					}
+				}
+				//diagonals
+				if (diagonalsAllowed) {
+					for (let i = 0; i < height - 1; i++) {
+						for (let j = 0; j < width - 1; j++) {
+							boardMatrix[i][j].addNeighbor(boardMatrix[i + 1][j + 1]);
+							boardMatrix[i + 1][j + 1].addNeighbor(boardMatrix[i][j]);
+						}
+					}
+					for (let i = 0; i < height - 1; i++) {
+						for (let j = 1; j < width; j++) {
+							//up & down
+							boardMatrix[i][j].addNeighbor(boardMatrix[i + 1][j - 1]);
+							boardMatrix[i + 1][j - 1].addNeighbor(boardMatrix[i][j]);
+						}
+					}
+				}
+			}
+			setUpBoard();
+			function isInBoard(word) {
+				for (let i = 0; i < classLetters.length; i++) {
+					//console.log(classLetters);
+					classLetters[i].unblob();
+				}
+				for (let i = 0; i < height; i++) {
+					for (let j = 0; j < width; j++) {
+						boardMatrix[i][j].clearColor();
+					}
+				}
+				for (let i = 0; i < height; i++) {
+					for (let j = 0; j < width; j++) {
+						if (boardMatrix[i][j].makesWord(word.toLocaleUpperCase())) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+			function isAWord(word) {
+				if (! isInBoard(word)) {
+					alert("not in the board");
+					return false;
+				}
+				if (! englishDictionary.includes(word)) {
+					alert("not in the dictionary");
+					return false;
+				}
+				if (word.length < 4) {
+					alert("too short");
+					return false;
+				}
+				if (foundWords.includes(word)) {
+					alert("already found");
+					return false;
+				}
+				return true;
+			}
+			function isAWord2(word) {
+				if (! isInBoard(word)) {
+					return false;
+				}
+				if (! englishDictionary.includes(word)) {
+					return false;
+				}
+				if (word.length < 4) {
+					return false;
+				}
+				if (foundWords.includes(word)) {
+					return false;
+				}
+				return true;
+			}
+			const scoreDict = {4:1, 5:2, 6:3, 7:5, 8:11, 9:11, 10:11, 11:11, 12:11, 13:11, 14:11};
+			function takeInput() {
+				if (isAWord(input.value)) {
+					newLi = document.createElement("li");
+					newLi.innerHTML = input.value;
+					found.appendChild(newLi);
+					foundWords.push(input.value);
+					score += scoreDict[input.value.length];
+					document.getElementById("score").innerHTML = "score: " + score;
+				}
+				input.value = "";
+			}
+			let done = false;
+			input.addEventListener("keyup", function(event) {
+				if (! done) {
+					if (event.key == "Enter") {
+						takeInput();
+					} else {
+						isInBoard(input.value);
+					}
+				}
+			});
+
+			let timer = 120;
+			setInterval(function() {
+				if (! done) {
+					timer -= 1;
+					document.getElementById("timer").innerHTML = timer;
+					if (timer == 0) {
+						done = true;
+						alert("Time's up!");
+						let wordIndex = 0;
+						setInterval(function() {
+							if (wordIndex >= englishDictionary.length) {
+								return;
+							}
+							for (let i = 0; i < 500; i++) {
+								if (isAWord2(englishDictionary[wordIndex])) {
+									newLi = document.createElement("li");
+									newLi.innerHTML = englishDictionary[wordIndex];
+									document.getElementById("not found").appendChild(newLi);
+								}
+								wordIndex += 1;
+							}
+						}, 1);
+					}
+				}
+			}, 1000);
+		</script>
+	</body>
+</html>

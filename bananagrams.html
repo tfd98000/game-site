@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Bananagrams (1 player)</title>
+		<style>
+			.letterContainer { 
+				border: 3px solid black; 
+				height: 50px;
+				width: 50px;
+				position: relative;
+			}
+			
+			.letter {
+				margin: 0;
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				-ms-transform: translate(-50%, -50%);
+				transform: translate(-50%, -50%);
+			}
+			p {
+				font: 30px monospace;
+			}
+			tr {
+				height: 50px;
+				margin: 0;
+			}
+			td {
+				width: 50px;
+				margin: 0;
+			}
+			td:hover {
+				background-color: #f0c0c0;
+			}
+			table {
+				border: 1px solid black;
+			}
+			img {
+				position: fixed;
+				top: 0;
+				left: 0;
+				size: cover;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<table id="table">
+			<tr><td></td></tr>
+		</table>
+		<button id="dump">dump</button>
+		<button id="what word">Check what word is wrong</button>
+		<img src="banana.jpg" id="banana"/>
+		<script src="wordlist.js"></script>
+		<script>
+
+			const myDict = {
+				11.1607: 'E',
+				14.1736: 'M',
+				22.6702: 'A',
+				25.6736: 'H',
+				33.2545: 'R',
+				35.725: 'G',
+				43.269800000000004: 'I',
+				45.341800000000006: 'B',
+				52.505300000000005: 'O',
+				54.317400000000006: 'F',
+				61.2683: 'T',
+				63.046200000000006: 'Y',
+				69.70060000000001: 'N',
+				70.99050000000001: 'W',
+				76.72560000000001: 'S',
+				77.82720000000002: 'K',
+				83.31650000000002: 'L',
+				84.32390000000002: 'V',
+				88.86270000000002: 'C',
+				89.15290000000002: 'X',
+				92.78370000000001: 'U',
+				93.05590000000001: 'Z',
+				96.44030000000001: 'D',
+				96.63680000000001: 'J',
+				99.80390000000001: 'P',
+				100.00010000000002: 'Q'
+			};
+			function getRandomLetter() {
+				
+				let randomNumber = Math.random() * 100;
+				for (let i = 0; i < 26; i++) {
+					if (Object.keys(myDict)[i] > randomNumber) {
+						return myDict[Object.keys(myDict)[i]];
+					}
+				}
+			}
+			const checkElement = document.getElementById("what word");
+			const table = document.getElementById("table");
+			let board = [];
+			let x1 = -1;
+			let y1 = -1;
+			let x2 = -1;
+			let y2 = -1;
+
+			function addBuffer() {
+				//delete first line
+				let needToDeleteFirst = true;
+				for (let i = 0; i < board[0].length; i++) {
+					if (board[1][i] != " " || board[0][i] != " ") {
+						needToDeleteFirst = false;
+					}
+				}
+				if (needToDeleteFirst) {
+					board.shift();
+				}
+				//delete last line
+				let needToDeleteLast = true;
+				for (let i = 0; i < board[0].length; i++) {
+					if (board[board.length - 2][i] != " " || board[board.length - 1][i] != " ") {
+						needToDeleteLast = false;
+					}
+				}
+				if (needToDeleteLast) {
+					board.pop();
+				}
+				//delete left line
+				needToDeleteFirst = true;
+				for (let i = 0; i < board.length; i++) {
+					if (board[i][1] != " " || board[i][0] != " ") {
+						needToDeleteFirst = false;
+					}
+				}
+				if (needToDeleteFirst) {
+					for (let i = 0; i < board.length; i++) {
+						board[i].shift();
+					}
+				}
+				//delete right line
+				needToDeleteLast = true;
+				for (let i = 0; i < board.length; i++) {
+					if (board[i][board[0].length - 2] != " " || board[i][board[0].length - 1] != " ") {
+						needToDeleteLast = false;
+					}
+				}
+				if (needToDeleteLast) {
+					for (let i = 0; i < board.length; i++) {
+						board[i].pop();
+					}
+				}
+				//add buffers
+				for (let i = 0; i < board[1].length; i++) {
+					if (board[0][i] != " ") {
+						board.unshift([]);
+						for (let j = 0; j < board[1].length; j++) {
+							board[0].push(" ");
+						}
+					}
+				}
+
+
+				for (let i = 0; i < board[1].length; i++) {
+					if (board[board.length - 1][i] != " ") {
+						board.push([]);
+						for (let j = 0; j < board[1].length; j++) {
+							board[board.length - 1].push(" ");
+						}
+					}
+				}
+
+				for (let i = 0; i < board.length; i++) {
+					if (board[i][0] != " ") {
+						for (let j = 0; j < board.length; j++) {
+							board[j].unshift(" ");
+						}
+					}
+					if (board[i][board[i].length - 1] != " ") {
+						for (let j = 0; j < board.length; j++) {
+							board[j].push(" ");
+						}
+					}
+				}
+			}
+
+
+			
+			for (let i = 0; i < 3; i++) {
+				let newRow = [];
+				board.push(newRow);
+				for (let j = 0; j < 3; j++) {
+					newRow.push(getRandomLetter());
+				}
+			}
+			addBuffer();
+			function addLetter(x, y, char) {
+				let td = table.children[y].children[x];
+				let container = document.createElement("div");
+				container.classList.add("letterContainer");
+				td.appendChild(container);
+				let letter = document.createElement("div");
+				letter.classList.add("letter");
+				container.appendChild(letter);
+				let p = document.createElement("p");
+				letter.appendChild(p);
+				p.innerHTML = char;
+			}
+			
+			function setUpTable(width, height) {
+				table.innerHTML = "";
+				for (let i = 0; i < height; i++) {
+					let tr = document.createElement("tr");
+					for (let j = 0; j < width; j++) {
+						tr.appendChild(document.createElement("td"));
+					}
+					table.appendChild(tr);
+				}
+			}
+			function makeMatrix(matrix) {
+				let height = matrix.length;
+				let width = matrix[0].length;
+				setUpTable(width, height);
+				for (let i = 0; i < width; i++) {
+					for (let j = 0; j < height; j++) {
+						if (matrix[j][i] != " ") {
+							addLetter(i, j, matrix[j][i]);
+						}
+					}
+				}
+			}
+			function swapTiles(x1, y1, x2, y2, matrix) {
+				let char1 = matrix[y1][x1];
+				let char2 = matrix[y2][x2];
+				matrix[y1][x1] = char2;
+				matrix[y2][x2] = char1;
+			}
+			
+			makeMatrix(board);
+
+			
+
+			function dump() {
+				board[y1][x1] = " ";
+				board[0][0] = getRandomLetter();
+				board[0][1] = getRandomLetter();
+				board[0][2] = getRandomLetter();
+				addBuffer();
+				makeMatrix(board);
+				prepareSwapping();
+				checkBoard();
+				x1 = -1;
+				x2 = -1;
+				y1 = -1;
+				y2 = -1;
+			}
+			document.getElementById("dump").addEventListener("click", dump);
+			function prepareSwapping() {
+				for (let i = 0; i < board.length; i++) {
+					let tr = table.children[i];
+					for (let j = 0; j < board[0].length; j++) {
+						tr.children[j].addEventListener("click", function() {
+							if (x1 > -1) {
+								x2 = j;
+								y2 = i;
+								swapTiles(x1, y1, x2, y2, board);
+								addBuffer();
+								makeMatrix(board);
+								prepareSwapping();
+								checkBoard();
+								x1 = -1;
+								x2 = -1;
+								y1 = -1;
+								y2 = -1;
+							} else {
+								this.style.backgroundColor = "#c0c0c0";
+								x1 = j;
+								y1 = i;
+							}
+						});
+					}
+				}
+			}
+			prepareSwapping();
+			function rotateArray(a) {
+				newArray = [];
+				for (let i = 0; i < a[0].length; i++) {
+					newArray.push([]);
+					for (let j = 0; j < a.length; j++) {
+						newArray[newArray.length - 1].push(a[j][i]);
+					}
+				}
+				return newArray;
+			}
+			function isNotSpace(point, b) {
+				if (point[0] >= b.length) {
+					return false;
+				}
+				if (point[0] < 0) {
+					return false;
+				}
+				let r = b[point[0]];
+				
+				if (point[1] >= r.length) {
+					return false;
+				}
+				if (point[1] < 0) {
+					return false;
+				}
+				if (r[point[1]] == " ") {
+					return false;
+				}
+				return true;
+			}
+			class Letter {
+				constructor(char) {
+					this.above = false;
+					this.below = false;
+					this.left = false;
+					this.right = false;
+					this.partOfBlob = false;
+					this.char = char;
+				}
+				setAbove(i) {this.above = i;}
+				setBelow(i) {this.below = i;}
+				setLeft(i) {this.left = i;}
+				setRight(i) {this.right = i;}
+				setPartOfBlob() {this.partOfBlob = true;}
+				
+				getWholeBlob() {
+					if (this.partOfBlob == false && this.char != " ") {
+						this.setPartOfBlob();
+						this.above.getWholeBlob();
+						this.below.getWholeBlob();
+						this.left.getWholeBlob();
+						this.right.getWholeBlob();
+					}
+				}
+			}
+			function checkIfTogether() {
+				let letterMatrix = [];
+				let startingSpot;
+				for (let i = 0; i < board.length; i++) {
+					let newRow = [];
+					letterMatrix.push(newRow);
+					for (let j = 0; j < board[0].length; j++) {
+						newRow.push(new Letter(board[i][j]));
+						if (board[i][j] != " ") {
+							startingSpot = newRow[newRow.length - 1];
+						}
+					}
+				}
+				for (let i = 0; i < letterMatrix.length - 1; i++) {
+					for (let j = 0; j < letterMatrix[0].length - 1; j++) {
+						//left & right
+						letterMatrix[i][j].setRight(letterMatrix[i][j + 1]);
+						letterMatrix[i][j + 1].setLeft(letterMatrix[i][j]);
+						//up & down
+						letterMatrix[i][j].setBelow(letterMatrix[i + 1][j]);
+						letterMatrix[i + 1][j].setAbove(letterMatrix[i][j]);
+					}
+				}
+				startingSpot.getWholeBlob();
+				for (let i = 0; i < letterMatrix.length - 1; i++) {
+					for (let j = 0; j < letterMatrix[0].length - 1; j++) {
+						if (letterMatrix[i][j].partOfBlob == false && letterMatrix[i][j].char != " ") {
+							return false;
+						}
+					}
+				}
+				return true;
+			}
+			function checkBoard() {
+				if (! checkIfTogether()) {
+					return false;
+				}
+				for (let i = 0; i < board.length; i++) {
+					s = board[i].join("");
+					words = s.split(" ");
+					for (let j = 0; j < words.length; j++) {
+						if (! englishDictionary.includes(words[j].toLowerCase())) {
+							return false;
+						}
+					}
+				}
+				newArray = rotateArray(board);
+				for (let i = 0; i < newArray.length; i++) {
+					s = newArray[i].join("");
+					words = s.split(" ");
+					for (let j = 0; j < words.length; j++) {
+						if (! englishDictionary.includes(words[j].toLowerCase())) {
+							return false;
+						}
+					}
+				}
+				board[0][0] = getRandomLetter();
+				addBuffer();
+				makeMatrix(board);
+				prepareSwapping();
+				checkBoard();
+				document.getElementById("banana").style.display = "block";
+				setTimeout(function() {
+					document.getElementById("banana").style.display = "none";
+				}, 1000);
+				return true;
+			}
+
+
+
+			function checkBoard2() {
+				if (! checkIfTogether()) {
+					return false;
+				}
+				for (let i = 0; i < board.length; i++) {
+					s = board[i].join("");
+					words = s.split(" ");
+					for (let j = 0; j < words.length; j++) {
+						if (! englishDictionary.includes(words[j].toLowerCase())) {
+							alert(words[j]);
+							return false;
+						}
+					}
+				}
+				newArray = rotateArray(board);
+				for (let i = 0; i < newArray.length; i++) {
+					s = newArray[i].join("");
+					words = s.split(" ");
+					for (let j = 0; j < words.length; j++) {
+						if (! englishDictionary.includes(words[j].toLowerCase())) {
+							return false;
+						}
+					}
+				}
+				board[0][0] = getRandomLetter();
+				addBuffer();
+				makeMatrix(board);
+				prepareSwapping();
+				checkBoard();
+				document.getElementById("banana").style.display = "block";
+				setTimeout(function() {
+					document.getElementById("banana").style.display = "none";
+				}, 1000);
+				return true;
+			}
+			checkElement.onclick = checkBoard2;
+		</script>
+	</body>
+</html>
