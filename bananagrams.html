@@ -421,6 +421,7 @@
 					words = s.split(" ");
 					for (let j = 0; j < words.length; j++) {
 						if (! englishDictionary.includes(words[j].toLowerCase())) {
+							alert(words[j]);
 							return false;
 						}
 					}
